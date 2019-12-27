@@ -18,7 +18,7 @@ __email__ = "marcusbfs@gmail.com"
 @unique
 class changeItem(Enum):
     all = 1
-    files = 2 
+    files = 2
     dirs = 3
 
 
@@ -32,12 +32,31 @@ class cesp:
         self._convert_utf = False
         self._convert_dots = False
         self._convert_brackets = False
+        self._remove_special_chars = False
         self._quiet = False
         self._no_change = True
         self._change = changeItem.files
 
         self._print = None
         self._update_print()
+
+        self._special_chars = [
+            u"!",
+            u"?",
+            u"$",
+            u"%",
+            u"!",
+            u'"',
+            u"|",
+            u"/",
+            u"\\",
+            u"&",
+            u"*",
+            u":",
+            u";",
+            u"+",
+            u"=",
+        ]
 
         self._utf_chars = {
             u"ç": "c",
@@ -214,6 +233,8 @@ class cesp:
             name = self._convertDots(name)
         if self._convert_brackets:
             name = self._convertBrackets(name)
+        if self._remove_special_chars:
+            name = self._removeSpecialChars(name)
 
         name = self._removeBlankSpaces(name)
         return name
@@ -223,6 +244,12 @@ class cesp:
         name = re.sub(r"_+", r"_", name)
         name = re.sub(r"(^_|_$)", r"", name)
         name = re.sub(r"_\.", r".", name)
+        return name
+
+    def _removeSpecialChars(self, name: str) -> str:
+        for special_char in self._special_chars:
+            if special_char in name:
+                name = name.replace(special_char, "_")
         return name
 
     def _convertUTF(self, name: str) -> str:
@@ -274,6 +301,9 @@ class cesp:
     def setBrackets(self, convertBrackets: bool) -> None:
         self._convert_brackets = convertBrackets
 
+    def setSpecialChars(self, removeSpecialChars: bool) -> None:
+        self._remove_special_chars = removeSpecialChars
+
     def setQuiet(self, quiet: bool) -> None:
         self._quiet = quiet
         self._update_print()
@@ -316,11 +346,12 @@ def main():
     cesper = cesp()
 
     # cesper.setPath("test_folder")
-    cesper.setRecursive(True)
-    cesper.setDots(True)
-    cesper.setBrackets(True)
-    cesper.setUTF(True)
-    cesper.setIgnoredDirs(["id",  ".git", ".vscode", "cesp_venv"])
+    # cesper.setRecursive(True)
+    # cesper.setDots(True)
+    # cesper.setBrackets(True)
+    # cesper.setUTF(True)
+    # cesper.setSpecialChars(True)
+    # cesper.setIgnoredDirs(["id",  ".git", ".vscode", "cesp_venv"])
     # cesper.setIgnoredExts(["mkv"])
 
     version_meassage = (
@@ -332,7 +363,11 @@ def main():
 
     # list_of_choices = [changeItem.files, changeItem.dirs, changeItem.all]
 
-    list_of_choices = {"files":changeItem.files, "dirs":changeItem.dirs, "all":changeItem.all}
+    list_of_choices = {
+        "files": changeItem.files,
+        "dirs": changeItem.dirs,
+        "all": changeItem.all,
+    }
     choices_keys = list(list_of_choices.keys())
     parser = argparse.ArgumentParser()
 
@@ -353,7 +388,23 @@ def main():
     )
 
     parser.add_argument(
+        "-d", "--dots", dest="dots", help="replace dots", action="store_true"
+    )
+
+    parser.add_argument(
+        "-u", "--UTF", dest="UTF", help="subs. UTF-8 chars", action="store_true"
+    )
+
+    parser.add_argument(
         "-b", dest="brackets", help="remove brackets", action="store_true"
+    )
+
+    parser.add_argument(
+        "-s",
+        "--special-chars",
+        dest="special_chars",
+        help="remove special characters",
+        action="store_true",
     )
 
     parser.add_argument(
@@ -372,14 +423,6 @@ def main():
         default=[],
         help="ignore exts",
         nargs="+",
-    )
-
-    parser.add_argument(
-        "-u", "--UTF", dest="UTF", help="subs. UTF-8 chars", action="store_true"
-    )
-
-    parser.add_argument(
-        "-d", "--dots", dest="dots", help="replace dots", action="store_true"
     )
 
     parser.add_argument(
@@ -407,10 +450,12 @@ def main():
     cesper.setQuiet(args.quiet)
     cesper.setNoChange(args.nochange)
     cesper.setChange(list_of_choices[args.change[0]])
+    cesper.setSpecialChars(args.special_chars)
     cesper.setPath(args.path)
 
     # Change this for production
     # cesper.setNoChange(True)
+
     cesper.execute()
     # print(args)
 
