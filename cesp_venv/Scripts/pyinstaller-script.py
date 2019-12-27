@@ -1,4 +1,4 @@
-#!d:\desktop\cesp\cesp_venv\scripts\python.exe
+#!d:\desktop\workspace\cesp\cesp_venv\scripts\python.exe
 # EASY-INSTALL-ENTRY-SCRIPT: 'PyInstaller==3.5','console_scripts','pyinstaller'
 __requires__ = 'PyInstaller==3.5'
 import re

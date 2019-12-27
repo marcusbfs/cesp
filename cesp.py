@@ -15,16 +15,17 @@ __maintainer__ = "Marcus Bruno Fernandes Silva"
 __email__ = "marcusbfs@gmail.com"
 
 
+@unique
 class changeItem(Enum):
-    all = "all"
-    files = "files"
-    dirs = "dirs"
+    all = 1
+    files = 2 
+    dirs = 3
 
 
 class cesp:
     def __init__(self):
         self._version = __version__
-        self._path = "."
+        self._path = os.path.realpath(os.getcwd())
         self._recursive = False
         self._ignored_dirs: ListStr = []
         self._ignored_exts: ListStr = []
@@ -43,11 +44,14 @@ class cesp:
             u"Ç": "C",
             u"~": "",
             u"^": "",
+            u"ª": "a",
+            u"ä": "a",
             u"ã": "a",
             u"â": "a",
             u"á": "a",
             u"à": "a",
             u"Ã": "A",
+            u"Ä": "A",
             u"Â": "A",
             u"Á": "A",
             u"À": "A",
@@ -63,6 +67,7 @@ class cesp:
             u"Í": "I",
             u"Î": "I",
             u"Ì": "I",
+            u"º": "o",
             u"ó": "o",
             u"ô": "o",
             u"ò": "o",
@@ -72,11 +77,13 @@ class cesp:
             u"Ò": "O",
             u"Õ": "O",
             u"ú": "u",
+            u"ü": "u",
             u"û": "u",
             u"ù": "u",
             u"Ú": "U",
             u"Û": "U",
             u"Ù": "U",
+            u"Ü": "U",
         }
 
     # Commands
@@ -88,8 +95,9 @@ class cesp:
         if not os.path.isdir(self._path):
             raise ValueError("Invalid path.")
 
-        original_path = os.path.curdir
+        original_path = os.getcwd()
         os.chdir(self._path)
+        # print("Changed path to:", os.getcwd())
 
         # Not recursive
         if not self._recursive:
@@ -123,16 +131,20 @@ class cesp:
                     )
                 ]
             renamed_files = [self._get_converted_name(f) for f in original_files]
- 
+
         # Recursive
         else:
             for root, dirs, files in os.walk(".", topdown=False):
                 files = [
                     f
                     for f in files
-                    if not f.startswith(".") and self._isPathGood(f)
+                    if not f.startswith(".") and self._isPathGood(os.path.join(root, f))
                 ]
-                dirs = [d for d in dirs if not d.startswith(".") and self._isPathGood(f)]
+                dirs = [
+                    d
+                    for d in dirs
+                    if not d.startswith(".") and self._isPathGood(os.path.join(root, d))
+                ]
                 if self._change == changeItem.files:
                     wd = files
                 elif self._change == changeItem.dirs:
@@ -154,7 +166,6 @@ class cesp:
                     if not self._no_change:
                         os.rename(f, new_f)
 
-
         os.chdir(original_path)
         return 0
 
@@ -174,15 +185,14 @@ class cesp:
         return list_dirs
 
     def _isPathGood(self, path: str) -> bool:
-        return self._isExtensionGood(path) and self._isDirGood(path)
+        return self._isDirGood(path) and self._isExtensionGood(path)
 
     def _isDirGood(self, dir: str) -> bool:
         full_dir = os.path.realpath(dir)
-        print("isDirGood called")
-        print(full_dir)
-        print("")
+        # print("DirGood called")
+        # print("full_dir: " +"\"" + full_dir + "\"")
         for ignored_dir in self._ignored_dirs:
-            print(ignored_dir)
+            # print("ignored_dir: " +"\"" + ignored_dir + "\"")
             if ignored_dir in full_dir:
                 return False
         return True
@@ -238,8 +248,9 @@ class cesp:
 
     def _fullPathIgnoredDirs(self) -> None:
         for i in range(len(self._ignored_dirs)):
-            self._ignored_dirs[i] = os.path.realpath(self._ignored_dirs[i])
-
+            self._ignored_dirs[i] = os.path.realpath(
+                os.path.join(self._path, self._ignored_dirs[i])
+            )
 
     # Setters
 
@@ -274,7 +285,7 @@ class cesp:
         self._change = changeOption
 
     def setPath(self, path) -> str:
-        self._path = path
+        self._path = os.path.realpath(path)
 
     # Getters
 
@@ -301,99 +312,106 @@ class cesp:
 
 
 def main():
-    # print("Testando!")
 
     cesper = cesp()
-    cesper.setPath("test_folder")
-    # cesper.setRecursive(True)
+
+    # cesper.setPath("test_folder")
+    cesper.setRecursive(True)
     cesper.setDots(True)
     cesper.setBrackets(True)
     cesper.setUTF(True)
-    cesper.setIgnoredDirs(["id"])
-    # cesper.setIgnoredExts([".txt"])
+    cesper.setIgnoredDirs(["id",  ".git", ".vscode", "cesp_venv"])
+    # cesper.setIgnoredExts(["mkv"])
 
-    version_meassage = "cesp " + cesper.getVersion() + os.linesep + 'Author: Marcus Bruno (marcusbfs@gmail.com)'
+    version_meassage = (
+        "cesp "
+        + cesper.getVersion()
+        + os.linesep
+        + "Author: Marcus Bruno (marcusbfs@gmail.com)"
+    )
 
     # list_of_choices = [changeItem.files, changeItem.dirs, changeItem.all]
 
-    list_of_choices = ["files", "dirs", "all"]
+    list_of_choices = {"files":changeItem.files, "dirs":changeItem.dirs, "all":changeItem.all}
+    choices_keys = list(list_of_choices.keys())
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('dir', nargs='?', default=os.getcwd(), help="path")
+    parser.add_argument("path", nargs="?", default=os.getcwd(), help="path")
 
     parser.add_argument(
-        '-c',
-        '--change',
-        dest='change',
+        "-c",
+        "--change",
+        dest="change",
         nargs=1,
-        default=[list_of_choices[0]],
+        default=[choices_keys[0]],
         help="rename files, directories or all",
-        choices=list_of_choices)
+        choices=choices_keys,
+    )
 
     parser.add_argument(
-        '-r', dest='recursive', help="recursive action", action="store_true")
+        "-r", dest="recursive", help="recursive action", action="store_true"
+    )
 
     parser.add_argument(
-        '-b', dest='brackets', help="remove brackets", action="store_true")
+        "-b", dest="brackets", help="remove brackets", action="store_true"
+    )
 
     parser.add_argument(
-        '-i',
-        '--ignore-dirs',
+        "-i",
+        "--ignore-dirs",
         dest="ignoredirs",
         default=[],
         help="ignore dirs",
-        nargs='+')
+        nargs="+",
+    )
 
     parser.add_argument(
-        '-I',
-        '--ignore-exts',
+        "-I",
+        "--ignore-exts",
         dest="ignoreexts",
         default=[],
         help="ignore exts",
-        nargs='+')
+        nargs="+",
+    )
 
     parser.add_argument(
-        '-u',
-        '--UTF',
-        dest='UTF',
-        help="subs. UTF-8 chars",
-        action="store_true")
+        "-u", "--UTF", dest="UTF", help="subs. UTF-8 chars", action="store_true"
+    )
 
     parser.add_argument(
-        '-d', '--dots', dest='dots', help="replace dots", action="store_true")
+        "-d", "--dots", dest="dots", help="replace dots", action="store_true"
+    )
 
     parser.add_argument(
-        '-q',
-        '--quiet',
-        dest='quiet',
-        help="no verbosity",
-        action="store_true")
+        "-q", "--quiet", dest="quiet", help="no verbosity", action="store_true"
+    )
 
     parser.add_argument(
-        '-n',
-        '--no-change',
-        dest='nochange',
+        "-n",
+        "--no-change",
+        dest="nochange",
         help="do not make actual changes",
-        action="store_true")
+        action="store_true",
+    )
 
-    parser.add_argument('-v', '--version', action='version', version=version_meassage)
+    parser.add_argument("-v", "--version", action="version", version=version_meassage)
 
     args = parser.parse_args()
 
-    # cesper.setRecursive(args.recursive)
-    # cesper.setIgnoredDirs(args.ignoredirs)
-    # cesper.setIgnoredExts(args.ignoreexts)
-    # cesper.setUTF(args.UTF)
-    # cesper.setDots(args.dots)
-    # cesper.setBrackets(args.brackets)
-    # cesper.setQuiet(args.quiet)
-    # cesper.setNoChange(args.nochange)
+    cesper.setRecursive(args.recursive)
+    cesper.setIgnoredDirs(args.ignoredirs)
+    cesper.setIgnoredExts(args.ignoreexts)
+    cesper.setUTF(args.UTF)
+    cesper.setDots(args.dots)
+    cesper.setBrackets(args.brackets)
+    cesper.setQuiet(args.quiet)
+    cesper.setNoChange(args.nochange)
+    cesper.setChange(list_of_choices[args.change[0]])
+    cesper.setPath(args.path)
+
+    # Change this for production
     # cesper.setNoChange(True)
-    # cesper.setChange(args.change)
-    # cesper.setPath(args.dir)
-
     cesper.execute()
-
     # print(args)
 
 

@@ -1,4 +1,4 @@
-#!d:\desktop\cesp\cesp_venv\scripts\python.exe
+#!d:\desktop\workspace\cesp\cesp_venv\scripts\python.exe
 # EASY-INSTALL-ENTRY-SCRIPT: 'future==0.18.2','console_scripts','pasteurize'
 __requires__ = 'future==0.18.2'
 import re
