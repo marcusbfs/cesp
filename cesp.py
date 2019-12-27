@@ -23,7 +23,7 @@ class changeItem(Enum):
 
 
 class cesp:
-    self._special_chars = {
+    _special_chars = {
         u"?": "_",
         u"$": "_",
         u"%": "_",
@@ -45,7 +45,7 @@ class cesp:
         u"=": "_",
     }
 
-    self._utf_chars = {
+    _utf_chars = {
         u"ç": "c",
         u"Ç": "C",
         u"~": "",
@@ -252,15 +252,15 @@ class cesp:
         return name
 
     def _removeSpecialChars(self, name: str) -> str:
-        for special_char in self._special_chars:
-            if special_char in name:
-                name = name.replace(special_char, self._special_chars[special_char])
+        for char in name:
+            if char in self._special_chars:
+                name = name.replace(char, self._special_chars[char])
         return name
 
     def _convertUTF(self, name: str) -> str:
-        for _s in name:
-            if _s in self._utf_chars:
-                name = name.replace(_s, self._utf_chars[_s])
+        for char in name:
+            if char in self._utf_chars:
+                name = name.replace(char, self._utf_chars[char])
         return name
 
     def _convertDots(self, name: str) -> str:
