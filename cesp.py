@@ -1,0 +1,371 @@
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function, division, absolute_import
+import os
+import argparse
+from enum import Enum, unique
+from typing import List
+import re
+
+ListStr = List[str]
+
+__author__ = "Marcus Bruno Fernandes Silva"
+__version__ = "1.0.0"
+__maintainer__ = "Marcus Bruno Fernandes Silva"
+__email__ = "marcusbfs@gmail.com"
+
+
+class changeItem(Enum):
+    all = "all"
+    files = "files"
+    dirs = "dirs"
+
+
+class cesp:
+    def __init__(self):
+        self._version = __version__
+        self._path = "."
+        self._recursive = False
+        self._ignored_dirs: ListStr = []
+        self._ignored_exts: ListStr = []
+        self._convert_utf = False
+        self._convert_dots = False
+        self._convert_brackets = False
+        self._quiet = False
+        self._no_change = True
+        self._change = changeItem.files
+
+        self._print = None
+        self._update_print()
+
+        self._utf_chars = {
+            u"ç": "c",
+            u"Ç": "C",
+            u"~": "",
+            u"^": "",
+            u"ã": "a",
+            u"â": "a",
+            u"á": "a",
+            u"à": "a",
+            u"Ã": "A",
+            u"Â": "A",
+            u"Á": "A",
+            u"À": "A",
+            u"é": "e",
+            u"ê": "e",
+            u"è": "e",
+            u"É": "E",
+            u"Ê": "E",
+            u"È": "E",
+            u"í": "i",
+            u"î": "i",
+            u"ì": "i",
+            u"Í": "I",
+            u"Î": "I",
+            u"Ì": "I",
+            u"ó": "o",
+            u"ô": "o",
+            u"ò": "o",
+            u"õ": "o",
+            u"Ó": "O",
+            u"Ô": "O",
+            u"Ò": "O",
+            u"Õ": "O",
+            u"ú": "u",
+            u"û": "u",
+            u"ù": "u",
+            u"Ú": "U",
+            u"Û": "U",
+            u"Ù": "U",
+        }
+
+    # Commands
+
+    def execute(self) -> int:
+        original_files = []
+        renamed_files = []
+
+        if not os.path.isdir(self._path):
+            raise ValueError("Invalid path.")
+
+        os.chdir(self._path)
+
+        if not self._recursive:
+            if self._change == changeItem.files:
+                original_files = [
+                    f
+                    for f in self._oslistdir(
+                        ".",
+                        ignoredDirs=self._ignored_dirs,
+                        ignoredExts=self._ignored_exts,
+                    )
+                    if os.path.isfile(f)
+                ]
+            elif self._change == changeItem.dirs:
+                original_files = [
+                    f
+                    for f in self._oslistdir(
+                        ".",
+                        ignoredDirs=self._ignored_dirs,
+                        ignoredExts=self._ignored_exts,
+                    )
+                    if os.path.isdir(f)
+                ]
+            else:
+                original_files = [
+                    f
+                    for f in self._oslistdir(
+                        ".",
+                        ignoredDirs=self._ignored_dirs,
+                        ignoredExts=self._ignored_exts,
+                    )
+                ]
+            renamed_files = [self._get_converted_name(f) for f in original_files]
+
+        else:
+            for root, dirs, files in os.walk(".", topdown=False):
+                files = [
+                    f
+                    for f in files
+                    if not f.startswith(".") and self._isExtensionGood(f)
+                ]
+                dirs = [d for d in dirs if not d.startswith(".")]
+                if self._change == changeItem.files:
+                    wd = files
+                elif self._change == changeItem.dirs:
+                    wd = dirs
+                else:
+                    wd = files + dirs
+                for f in wd:
+                    new_f = self._get_converted_name(f)
+                    original_files.append(os.path.join(root, f))
+                    renamed_files.append(os.path.join(root, new_f))
+
+        for f, new_f in zip(original_files, renamed_files):
+            if f != new_f:
+
+                if os.path.exists(new_f):
+                    self._print(new_f + " already exists")
+                else:
+                    self._print(f + " -> " + new_f)
+                    if not self._no_change:
+                        os.rename(f, new_f)
+
+        return 0
+
+    # helper Functions
+
+    def _oslistdir(
+        self, path: str, ignoredDirs: ListStr = [], ignoredExts: ListStr = []
+    ) -> ListStr:
+        list_dirs = []
+        ignoredDirs = [f[:-1] if f[-1] == "/" else f for f in ignoredDirs]
+        ignoredExts = ["." + f for f in ignoredExts if not f.startswith(".")]
+        list_dirs = [
+            f
+            for f in os.listdir(path)
+            if (self._isPathGood(f) and not f.startswith("."))
+        ]
+        return list_dirs
+
+    def _isPathGood(self, path: str) -> bool:
+        # return self._isExtensionGood(path) and (s in path for s in self._ignored_dirs)
+        return self._isExtensionGood(path)
+
+    def _isExtensionGood(self, file: str) -> bool:
+        ext = os.path.splitext(file)[-1]
+        return ext not in self._ignored_exts
+
+    def _update_print(self):
+        if self._quiet:
+            self._print = lambda *args, **kwargs: None
+        else:
+            self._print = lambda *args, **kwargs: print(*args, **kwargs)
+
+    def _get_converted_name(self, name: str) -> str:
+        if self._convert_utf:
+            name = self._convertUTF(name)
+        if self._convert_dots:
+            name = self._convertDots(name)
+        if self._convert_brackets:
+            name = self._convertBrackets(name)
+
+        name = self._removeBlankSpaces(name)
+        return name
+
+    def _removeBlankSpaces(self, name: str) -> str:
+        name = re.sub(r"\s+", r"_", name)
+        name = re.sub(r"_+", r"_", name)
+        name = re.sub(r"(^_|_$)", r"", name)
+        name = re.sub(r"_\.", r".", name)
+        return name
+
+    def _convertUTF(self, name: str) -> str:
+        for _s in name:
+            if _s in self._utf_chars:
+                name = name.replace(_s, self._utf_chars[_s])
+        return name
+
+    def _convertDots(self, name: str) -> str:
+        base_name = os.path.splitext(name)[0]
+        name_extension = os.path.splitext(name)[-1]
+        base_name = base_name.replace(".", "_").replace(",", "_")
+        name = base_name + name_extension
+        return name
+
+    def _convertBrackets(self, name: str) -> str:
+        return re.sub(r"\(|\)|\[|\]|\{|\}", r"", name)
+
+    def _fixDotInIgnoredExtensions(self) -> None:
+        for i in range(len(self._ignored_exts)):
+            ext = self._ignored_exts[i]
+            if not ext.startswith("."):
+                self._ignored_exts[i] = "." + ext
+
+    # Setters
+
+    def setRecursive(self, recursive: bool) -> None:
+        self._recursive = recursive
+
+    def setIgnoredDirs(self, ignoredDirs: ListStr) -> None:
+        self._ignored_dirs = ignoredDirs
+
+    def setIgnoredExts(self, ignoredExts: ListStr) -> None:
+        self._ignored_exts = ignoredExts
+        self._fixDotInIgnoredExtensions()
+
+    def setUTF(self, convertUTF: bool) -> None:
+        self._convert_utf = convertUTF
+
+    def setDots(self, convertDots: bool) -> None:
+        self._convert_dots = convertDots
+
+    def setBrackets(self, convertBrackets: bool) -> None:
+        self._convert_brackets = convertBrackets
+
+    def setQuiet(self, quiet: bool) -> None:
+        self._quiet = quiet
+        self._update_print()
+
+    def setNoChange(self, noChange: bool) -> None:
+        self._no_change = noChange
+
+    def setChange(self, changeOption: changeItem) -> None:
+        self._change = changeOption
+
+    def setPath(self, path) -> str:
+        self._path = path
+
+    # Getters
+
+    def getVersion(self) -> str:
+        return self._version
+
+    def getPath(self) -> str:
+        return self._path
+
+    def isRecursive(self) -> bool:
+        return self._recursive
+
+    def getIgnoredDirs(self) -> ListStr:
+        return self._ignored_dirs
+
+    def getIgnoredExtensions(self) -> ListStr:
+        return self._ignored_exts
+
+    def whatToChange(self) -> changeItem:
+        return self._change
+
+    def isNoChange(self):
+        return self._no_change
+
+
+def main():
+    # print("Testando!")
+    cesper = cesp()
+    # cesper.setPath("test_folder")
+    # cesper.setRecursive(True)
+    # # cesper.setIgnoredDirs(["id"])
+    # cesper.setIgnoredExts([".txt"])
+
+
+    # list_of_choices = [changeItem.files, changeItem.dirs, changeItem.all]
+    list_of_choices = ["files", "dirs", "all"]
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('dir', nargs='?', default=os.getcwd(), help="path")
+
+    parser.add_argument(
+        '-c',
+        '--change',
+        dest='change',
+        nargs=1,
+        default=[list_of_choices[0]],
+        help="rename files, directories or all",
+        choices=list_of_choices)
+
+    parser.add_argument(
+        '-r', dest='R', help="recursive action", action="store_true")
+
+    parser.add_argument(
+        '-b', dest='brackets', help="remove brackets", action="store_true")
+
+    parser.add_argument(
+        '-i',
+        '--ignore-dirs',
+        dest="ignoredirs",
+        default=[],
+        help="ignore dirs",
+        nargs='+')
+
+    parser.add_argument(
+        '-I',
+        '--ignore-exts',
+        dest="ignoreexts",
+        default=[],
+        help="ignore exts",
+        nargs='+')
+
+    parser.add_argument(
+        '-u',
+        '--UTF',
+        dest='UTF',
+        help="subs. UTF-8 chars",
+        action="store_true")
+
+    parser.add_argument(
+        '-d', '--dots', dest='dots', help="replace dots", action="store_true")
+
+    parser.add_argument(
+        '-q',
+        '--quiet',
+        dest='quiet',
+        help="no verbosity",
+        action="store_true")
+
+    parser.add_argument(
+        '-n',
+        '--no-change',
+        dest='nochange',
+        help="do not make actual changes",
+        action="store_true")
+
+    args = parser.parse_args()
+
+    cesper.setRecursive(args.R)
+    cesper.setIgnoredDirs(args.ignoredirs)
+    cesper.setIgnoredExts(args.ignoreexts)
+    cesper.setUTF(args.UTF)
+    cesper.setDots(args.dots)
+    cesper.setBrackets(args.brackets)
+    cesper.setQuiet(args.quiet)
+    cesper.setNoChange(args.nochange)
+    cesper.setChange(args.change)
+    cesper.setPath(args.dir)
+
+    cesper.execute()
+
+
+if __name__ == "__main__":
+    main()
