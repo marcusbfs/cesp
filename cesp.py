@@ -88,8 +88,10 @@ class cesp:
         if not os.path.isdir(self._path):
             raise ValueError("Invalid path.")
 
+        original_path = os.path.curdir
         os.chdir(self._path)
 
+        # Not recursive
         if not self._recursive:
             if self._change == changeItem.files:
                 original_files = [
@@ -121,15 +123,16 @@ class cesp:
                     )
                 ]
             renamed_files = [self._get_converted_name(f) for f in original_files]
-
+ 
+        # Recursive
         else:
             for root, dirs, files in os.walk(".", topdown=False):
                 files = [
                     f
                     for f in files
-                    if not f.startswith(".") and self._isExtensionGood(f)
+                    if not f.startswith(".") and self._isPathGood(f)
                 ]
-                dirs = [d for d in dirs if not d.startswith(".")]
+                dirs = [d for d in dirs if not d.startswith(".") and self._isPathGood(f)]
                 if self._change == changeItem.files:
                     wd = files
                 elif self._change == changeItem.dirs:
@@ -151,6 +154,8 @@ class cesp:
                     if not self._no_change:
                         os.rename(f, new_f)
 
+
+        os.chdir(original_path)
         return 0
 
     # helper Functions
@@ -169,8 +174,18 @@ class cesp:
         return list_dirs
 
     def _isPathGood(self, path: str) -> bool:
-        # return self._isExtensionGood(path) and (s in path for s in self._ignored_dirs)
-        return self._isExtensionGood(path)
+        return self._isExtensionGood(path) and self._isDirGood(path)
+
+    def _isDirGood(self, dir: str) -> bool:
+        full_dir = os.path.realpath(dir)
+        print("isDirGood called")
+        print(full_dir)
+        print("")
+        for ignored_dir in self._ignored_dirs:
+            print(ignored_dir)
+            if ignored_dir in full_dir:
+                return False
+        return True
 
     def _isExtensionGood(self, file: str) -> bool:
         ext = os.path.splitext(file)[-1]
@@ -209,8 +224,7 @@ class cesp:
     def _convertDots(self, name: str) -> str:
         base_name = os.path.splitext(name)[0]
         name_extension = os.path.splitext(name)[-1]
-        base_name = base_name.replace(".", "_").replace(",", "_")
-        name = base_name + name_extension
+        name = base_name.replace(".", "_").replace(",", "_") + name_extension
         return name
 
     def _convertBrackets(self, name: str) -> str:
@@ -222,6 +236,11 @@ class cesp:
             if not ext.startswith("."):
                 self._ignored_exts[i] = "." + ext
 
+    def _fullPathIgnoredDirs(self) -> None:
+        for i in range(len(self._ignored_dirs)):
+            self._ignored_dirs[i] = os.path.realpath(self._ignored_dirs[i])
+
+
     # Setters
 
     def setRecursive(self, recursive: bool) -> None:
@@ -229,6 +248,7 @@ class cesp:
 
     def setIgnoredDirs(self, ignoredDirs: ListStr) -> None:
         self._ignored_dirs = ignoredDirs
+        self._fullPathIgnoredDirs()
 
     def setIgnoredExts(self, ignoredExts: ListStr) -> None:
         self._ignored_exts = ignoredExts
@@ -282,16 +302,21 @@ class cesp:
 
 def main():
     # print("Testando!")
+
     cesper = cesp()
-    # cesper.setPath("test_folder")
+    cesper.setPath("test_folder")
     # cesper.setRecursive(True)
-    # # cesper.setIgnoredDirs(["id"])
+    cesper.setDots(True)
+    cesper.setBrackets(True)
+    cesper.setUTF(True)
+    cesper.setIgnoredDirs(["id"])
     # cesper.setIgnoredExts([".txt"])
 
+    version_meassage = "cesp " + cesper.getVersion() + os.linesep + 'Author: Marcus Bruno (marcusbfs@gmail.com)'
 
     # list_of_choices = [changeItem.files, changeItem.dirs, changeItem.all]
-    list_of_choices = ["files", "dirs", "all"]
 
+    list_of_choices = ["files", "dirs", "all"]
     parser = argparse.ArgumentParser()
 
     parser.add_argument('dir', nargs='?', default=os.getcwd(), help="path")
@@ -306,7 +331,7 @@ def main():
         choices=list_of_choices)
 
     parser.add_argument(
-        '-r', dest='R', help="recursive action", action="store_true")
+        '-r', dest='recursive', help="recursive action", action="store_true")
 
     parser.add_argument(
         '-b', dest='brackets', help="remove brackets", action="store_true")
@@ -351,20 +376,25 @@ def main():
         help="do not make actual changes",
         action="store_true")
 
+    parser.add_argument('-v', '--version', action='version', version=version_meassage)
+
     args = parser.parse_args()
 
-    cesper.setRecursive(args.R)
-    cesper.setIgnoredDirs(args.ignoredirs)
-    cesper.setIgnoredExts(args.ignoreexts)
-    cesper.setUTF(args.UTF)
-    cesper.setDots(args.dots)
-    cesper.setBrackets(args.brackets)
-    cesper.setQuiet(args.quiet)
-    cesper.setNoChange(args.nochange)
-    cesper.setChange(args.change)
-    cesper.setPath(args.dir)
+    # cesper.setRecursive(args.recursive)
+    # cesper.setIgnoredDirs(args.ignoredirs)
+    # cesper.setIgnoredExts(args.ignoreexts)
+    # cesper.setUTF(args.UTF)
+    # cesper.setDots(args.dots)
+    # cesper.setBrackets(args.brackets)
+    # cesper.setQuiet(args.quiet)
+    # cesper.setNoChange(args.nochange)
+    # cesper.setNoChange(True)
+    # cesper.setChange(args.change)
+    # cesper.setPath(args.dir)
 
     cesper.execute()
+
+    # print(args)
 
 
 if __name__ == "__main__":
