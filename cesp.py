@@ -23,6 +23,76 @@ class changeItem(Enum):
 
 
 class cesp:
+    self._special_chars = {
+        u"?": "_",
+        u"$": "_",
+        u"%": "_",
+        u"°": "o",
+        u"!": "_",
+        u"@": "_",
+        u'"': "_",
+        u"|": "_",
+        u"<": "_",
+        u">": "_",
+        u"/": "_",
+        u"§": "_",
+        u"\\": "_",
+        u"&": "and",
+        u"*": "_",
+        u":": "_",
+        u";": "_",
+        u"+": "_",
+        u"=": "_",
+    }
+
+    self._utf_chars = {
+        u"ç": "c",
+        u"Ç": "C",
+        u"~": "",
+        u"^": "",
+        u"ª": "a",
+        u"ä": "a",
+        u"ã": "a",
+        u"â": "a",
+        u"á": "a",
+        u"à": "a",
+        u"Ã": "A",
+        u"Ä": "A",
+        u"Â": "A",
+        u"Á": "A",
+        u"À": "A",
+        u"é": "e",
+        u"ê": "e",
+        u"è": "e",
+        u"É": "E",
+        u"Ê": "E",
+        u"È": "E",
+        u"í": "i",
+        u"î": "i",
+        u"ì": "i",
+        u"Í": "I",
+        u"Î": "I",
+        u"Ì": "I",
+        u"º": "o",
+        u"°": "o",
+        u"ó": "o",
+        u"ô": "o",
+        u"ò": "o",
+        u"õ": "o",
+        u"Ó": "O",
+        u"Ô": "O",
+        u"Ò": "O",
+        u"Õ": "O",
+        u"ú": "u",
+        u"ü": "u",
+        u"û": "u",
+        u"ù": "u",
+        u"Ú": "U",
+        u"Û": "U",
+        u"Ù": "U",
+        u"Ü": "U",
+    }
+
     def __init__(self):
         self._version = __version__
         self._path = os.path.realpath(os.getcwd())
@@ -39,71 +109,6 @@ class cesp:
 
         self._print = None
         self._update_print()
-
-        self._special_chars = [
-            u"!",
-            u"?",
-            u"$",
-            u"%",
-            u"!",
-            u'"',
-            u"|",
-            u"/",
-            u"\\",
-            u"&",
-            u"*",
-            u":",
-            u";",
-            u"+",
-            u"=",
-        ]
-
-        self._utf_chars = {
-            u"ç": "c",
-            u"Ç": "C",
-            u"~": "",
-            u"^": "",
-            u"ª": "a",
-            u"ä": "a",
-            u"ã": "a",
-            u"â": "a",
-            u"á": "a",
-            u"à": "a",
-            u"Ã": "A",
-            u"Ä": "A",
-            u"Â": "A",
-            u"Á": "A",
-            u"À": "A",
-            u"é": "e",
-            u"ê": "e",
-            u"è": "e",
-            u"É": "E",
-            u"Ê": "E",
-            u"È": "E",
-            u"í": "i",
-            u"î": "i",
-            u"ì": "i",
-            u"Í": "I",
-            u"Î": "I",
-            u"Ì": "I",
-            u"º": "o",
-            u"ó": "o",
-            u"ô": "o",
-            u"ò": "o",
-            u"õ": "o",
-            u"Ó": "O",
-            u"Ô": "O",
-            u"Ò": "O",
-            u"Õ": "O",
-            u"ú": "u",
-            u"ü": "u",
-            u"û": "u",
-            u"ù": "u",
-            u"Ú": "U",
-            u"Û": "U",
-            u"Ù": "U",
-            u"Ü": "U",
-        }
 
     # Commands
 
@@ -249,7 +254,7 @@ class cesp:
     def _removeSpecialChars(self, name: str) -> str:
         for special_char in self._special_chars:
             if special_char in name:
-                name = name.replace(special_char, "_")
+                name = name.replace(special_char, self._special_chars[special_char])
         return name
 
     def _convertUTF(self, name: str) -> str:
