@@ -10,7 +10,7 @@ import re
 ListStr = List[str]
 
 __author__ = "Marcus Bruno Fernandes Silva"
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 __maintainer__ = "Marcus Bruno Fernandes Silva"
 __email__ = "marcusbfs@gmail.com"
 
@@ -45,6 +45,7 @@ class cesp:
         u"*": "_",
         u":": "_",
         u";": "_",
+        u",": "_",
         u"+": "_",
         u"=": "_",
     }
