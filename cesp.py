@@ -2,17 +2,22 @@
 
 from __future__ import print_function, division, absolute_import
 import os
+import time
 import argparse
 from enum import Enum, unique
 from typing import List
 import re
+import logging
 
 ListStr = List[str]
 
 __author__ = "Marcus Bruno Fernandes Silva"
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 __maintainer__ = "Marcus Bruno Fernandes Silva"
 __email__ = "marcusbfs@gmail.com"
+
+cesp_logger = logging.getLogger("cesp")
+root_logger = logging.getLogger("main")
 
 
 @unique
@@ -99,6 +104,8 @@ class cesp:
     }
 
     def __init__(self):
+        self.logger = logging.getLogger("cesp")
+        self.logger.debug("Constructing object")
         self._version = __version__
         self._path = os.path.realpath(os.getcwd())
         self._recursive = False
@@ -118,6 +125,7 @@ class cesp:
     # Commands
 
     def execute(self) -> int:
+        self.logger.debug('"execute" called')
         original_files = []
         renamed_files = []
 
@@ -125,11 +133,15 @@ class cesp:
             raise ValueError("Invalid path.")
 
         original_path = os.getcwd()
+        self.logger.debug('Original path "{}"'.format(original_path))
+        self.logger.debug('Changing path to "{}"'.format(self._path))
         os.chdir(self._path)
-        # print("Changed path to:", os.getcwd())
 
+        self.logger.debug("Walking directory tree and collecting names to be renamed")
         # Not recursive
         if not self._recursive:
+            self.logger.debug("Non recursive mode")
+            self.logger.debug("Change type is {}".format(self._change))
             if self._change == changeItem.files:
                 original_files = [
                     f
@@ -163,6 +175,7 @@ class cesp:
 
         # Recursive
         else:
+            self.logger.debug("Recursive mode")
             for root, dirs, files in os.walk(".", topdown=False):
                 files = [
                     f
@@ -185,9 +198,21 @@ class cesp:
                     original_files.append(os.path.join(root, f))
                     renamed_files.append(os.path.join(root, new_f))
 
+        new_original_files = []
+        new_renamed_files = []
+
         for f, new_f in zip(original_files, renamed_files):
             if f != new_f:
+                new_original_files.append(f)
+                new_renamed_files.append(new_f)
 
+        original_files = new_original_files
+        renamed_files = new_renamed_files
+
+        self.logger.debug("Collected {} files to be renamed".format(len(renamed_files)))
+
+        for f, new_f in zip(original_files, renamed_files):
+            if f != new_f:
                 if os.path.exists(new_f):
                     self._print(new_f + " already exists")
                 else:
@@ -195,7 +220,9 @@ class cesp:
                     if not self._no_change:
                         os.rename(f, new_f)
 
+        self.logger.debug('Returning to "{}"'.format(original_path))
         os.chdir(original_path)
+        self.logger.debug("execute method finished")
         return 0
 
     # helper Functions
@@ -203,6 +230,7 @@ class cesp:
     def _oslistdir(
         self, path: str, ignoredDirs: ListStr = [], ignoredExts: ListStr = []
     ) -> ListStr:
+        self.logger.debug("_oslistdir called")
         list_dirs = []
         ignoredDirs = [f[:-1] if f[-1] == "/" else f for f in ignoredDirs]
         ignoredExts = ["." + f for f in ignoredExts if not f.startswith(".")]
@@ -218,10 +246,7 @@ class cesp:
 
     def _isDirGood(self, dir: str) -> bool:
         full_dir = os.path.realpath(dir)
-        # print("DirGood called")
-        # print("full_dir: " +"\"" + full_dir + "\"")
         for ignored_dir in self._ignored_dirs:
-            # print("ignored_dir: " +"\"" + ignored_dir + "\"")
             if ignored_dir in full_dir:
                 return False
         return True
@@ -231,6 +256,7 @@ class cesp:
         return ext not in self._ignored_exts
 
     def _update_print(self):
+        self.logger.debug("_update_print called")
         if self._quiet:
             self._print = lambda *args, **kwargs: None
         else:
@@ -329,8 +355,9 @@ class cesp:
 
     # Getters
 
-    def getVersion(self) -> str:
-        return self._version
+    @staticmethod
+    def getVersion() -> str:
+        return __version__
 
     def getPath(self) -> str:
         return self._path
@@ -353,25 +380,26 @@ class cesp:
 
 def main():
 
-    cesper = cesp()
+    start_time = time.time()
 
-    # cesper.setPath("test_folder")
-    # cesper.setRecursive(True)
-    # cesper.setDots(True)
-    # cesper.setBrackets(True)
-    # cesper.setUTF(True)
-    # cesper.setSpecialChars(True)
-    # cesper.setIgnoredDirs(["id",  ".git", ".vscode", "cesp_venv"])
-    # cesper.setIgnoredExts(["mkv"])
-
-    version_meassage = (
+    version_message = (
         "cesp "
-        + cesper.getVersion()
+        + cesp.getVersion()
         + os.linesep
-        + "Author: Marcus Bruno (marcusbfs@gmail.com)"
+        + os.linesep
+        + "Author: "
+        + __maintainer__
+        + os.linesep
+        + "email: "
+        + __email__
     )
 
-    # list_of_choices = [changeItem.files, changeItem.dirs, changeItem.all]
+    desc = (
+        version_message
+        + os.linesep
+        + os.linesep
+        + "Converts blank space to underscore and other characters to avoid problems"
+    )
 
     list_of_choices = {
         "files": changeItem.files,
@@ -379,7 +407,10 @@ def main():
         "all": changeItem.all,
     }
     choices_keys = list(list_of_choices.keys())
-    parser = argparse.ArgumentParser()
+
+    parser = argparse.ArgumentParser(
+        description=desc, formatter_class=argparse.RawTextHelpFormatter
+    )
 
     parser.add_argument("path", nargs="?", default=os.getcwd(), help="path")
 
@@ -447,10 +478,26 @@ def main():
         action="store_true",
     )
 
-    parser.add_argument("-v", "--version", action="version", version=version_meassage)
+    parser.add_argument(
+        "--debug",
+        help="display debug level information",
+        action="store_const",
+        dest="loglevel",
+        const=logging.DEBUG,
+        default=logging.WARNING,
+    )
+
+    parser.add_argument("-v", "--version", action="version", version=version_message)
 
     args = parser.parse_args()
 
+    logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    logging.basicConfig(level=args.loglevel, format=logging_format)
+
+    root_logger.debug("Args passed: {}".format(args))
+
+    cesper = cesp()
+    root_logger.debug("Passings args to cesper object")
     cesper.setRecursive(args.recursive)
     cesper.setIgnoredDirs(args.ignoredirs)
     cesper.setIgnoredExts(args.ignoreexts)
@@ -463,11 +510,12 @@ def main():
     cesper.setSpecialChars(args.special_chars)
     cesper.setPath(args.path)
 
-    # Change this for production
-    # cesper.setNoChange(True)
-
+    root_logger.debug("Calling cesper.execute()")
     cesper.execute()
-    # print(args)
+
+    root_logger.debug(
+        "Finished program in {:.3f} seconds".format(time.time() - start_time)
+    )
 
 
 if __name__ == "__main__":
