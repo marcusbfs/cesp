@@ -1,3 +1,4 @@
+*.exe
 # venv
 cesp_venv/
 # Byte-compiled / optimized / DLL files
