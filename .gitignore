@@ -1,6 +1,7 @@
 *.exe
 # venv
 cesp_venv/
+test_folder/
 # Byte-compiled / optimized / DLL files
 
 .vscode/*

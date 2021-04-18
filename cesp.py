@@ -5,7 +5,7 @@ import os
 import time
 import argparse
 from enum import Enum, unique
-from typing import List
+from typing import List, Callable
 import re
 import logging
 
@@ -103,7 +103,7 @@ class cesp:
         u"Ü": "U",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger("cesp")
         self.logger.debug("Constructing object")
         self._version = __version__
@@ -119,7 +119,7 @@ class cesp:
         self._no_change = True
         self._change = changeItem.files
 
-        self._print = None
+        self._print: Callable = lambda x: None
         self._update_print()
 
     # Commands
@@ -255,7 +255,7 @@ class cesp:
         ext = os.path.splitext(file)[-1]
         return ext not in self._ignored_exts
 
-    def _update_print(self):
+    def _update_print(self) -> None:
         self.logger.debug("_update_print called")
         if self._quiet:
             self._print = lambda *args, **kwargs: None
@@ -350,7 +350,7 @@ class cesp:
     def setChange(self, changeOption: changeItem) -> None:
         self._change = changeOption
 
-    def setPath(self, path) -> str:
+    def setPath(self, path: str) -> None:
         self._path = os.path.realpath(path)
 
     # Getters
@@ -374,11 +374,11 @@ class cesp:
     def whatToChange(self) -> changeItem:
         return self._change
 
-    def isNoChange(self):
+    def isNoChange(self) -> bool:
         return self._no_change
 
 
-def main():
+def main() -> None:
 
     start_time = time.time()
 
@@ -496,7 +496,7 @@ def main():
 
     root_logger.debug("Args passed: {}".format(args))
 
-    cesper = cesp()
+    cesper: cesp = cesp()
     root_logger.debug("Passings args to cesper object")
     cesper.setRecursive(args.recursive)
     cesper.setIgnoredDirs(args.ignoredirs)
