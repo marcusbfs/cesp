@@ -4,10 +4,10 @@ from __future__ import print_function, division, absolute_import, annotations
 import os
 import time
 import argparse
-from enum import Enum, unique
-from typing import Callable, Any
 import re
 import logging
+from enum import Enum, unique
+from typing import Callable, Any
 
 listStr = list[str]
 
@@ -106,7 +106,6 @@ class cesp:
     def __init__(self) -> None:
         self.logger = logging.getLogger("cesp")
         self.logger.debug("Constructing object")
-        self._version = __version__
         self._path = os.path.realpath(os.getcwd())
         self._recursive = False
         self._ignored_dirs: listStr = []
@@ -119,7 +118,7 @@ class cesp:
         self._no_change = True
         self._change = changeItem.files
 
-        self._print: Callable[[Any], None] = lambda x:  None
+        self._print: Callable[[Any], None] = lambda x: None
         self._update_print()
 
     # Commands
