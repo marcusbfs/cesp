@@ -8,4 +8,4 @@ mypy:
 	$(python) -m  mypy .  --ignore-missing-imports --check-untyped-defs --disallow-untyped-calls --disallow-untyped-defs
 
 black:
-	$(python) -m black cesp.py
+	$(python) -m black cesp.py scripts
