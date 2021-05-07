@@ -1,19 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division, absolute_import
+from __future__ import print_function, division, absolute_import, annotations
 import os
 import time
 import argparse
 from enum import Enum, unique
-from typing import List, Callable
+from typing import Callable, Any
 import re
 import logging
 
-ListStr = List[str]
+listStr = list[str]
 
 __author__ = "Marcus Bruno Fernandes Silva"
-__version__ = "1.1.0"
-__maintainer__ = "Marcus Bruno Fernandes Silva"
+__version__ = "1.1.1"
+__maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
 
 cesp_logger = logging.getLogger("cesp")
@@ -109,8 +109,8 @@ class cesp:
         self._version = __version__
         self._path = os.path.realpath(os.getcwd())
         self._recursive = False
-        self._ignored_dirs: ListStr = []
-        self._ignored_exts: ListStr = []
+        self._ignored_dirs: listStr = []
+        self._ignored_exts: listStr = []
         self._convert_utf = False
         self._convert_dots = False
         self._convert_brackets = False
@@ -119,7 +119,7 @@ class cesp:
         self._no_change = True
         self._change = changeItem.files
 
-        self._print: Callable = lambda x: None
+        self._print: Callable[[Any], None] = lambda x:  None
         self._update_print()
 
     # Commands
@@ -228,8 +228,8 @@ class cesp:
     # helper Functions
 
     def _oslistdir(
-        self, path: str, ignoredDirs: ListStr = [], ignoredExts: ListStr = []
-    ) -> ListStr:
+        self, path: str, ignoredDirs: listStr = [], ignoredExts: listStr = []
+    ) -> listStr:
         self.logger.debug("_oslistdir called")
         list_dirs = []
         ignoredDirs = [f[:-1] if f[-1] == "/" else f for f in ignoredDirs]
@@ -320,11 +320,11 @@ class cesp:
     def setRecursive(self, recursive: bool) -> None:
         self._recursive = recursive
 
-    def setIgnoredDirs(self, ignoredDirs: ListStr) -> None:
+    def setIgnoredDirs(self, ignoredDirs: listStr) -> None:
         self._ignored_dirs = ignoredDirs
         self._fullPathIgnoredDirs()
 
-    def setIgnoredExts(self, ignoredExts: ListStr) -> None:
+    def setIgnoredExts(self, ignoredExts: listStr) -> None:
         self._ignored_exts = ignoredExts
         self._fixDotInIgnoredExtensions()
 
@@ -365,10 +365,10 @@ class cesp:
     def isRecursive(self) -> bool:
         return self._recursive
 
-    def getIgnoredDirs(self) -> ListStr:
+    def getIgnoredDirs(self) -> listStr:
         return self._ignored_dirs
 
-    def getIgnoredExtensions(self) -> ListStr:
+    def getIgnoredExtensions(self) -> listStr:
         return self._ignored_exts
 
     def whatToChange(self) -> changeItem:

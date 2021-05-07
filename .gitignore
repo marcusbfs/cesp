@@ -4,6 +4,7 @@ cesp_venv/
 test_folder/
 # Byte-compiled / optimized / DLL files
 
+.vscode/
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
