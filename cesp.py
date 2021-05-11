@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, division, absolute_import, annotations
-import os
-import time
+from __future__ import absolute_import, annotations, division, print_function
+
 import argparse
-import re
 import logging
+import os
+import re
+import time
 from enum import Enum, unique
-from typing import Callable, Any
+from typing import Any, Callable
 
 listStr = list[str]
 
 __author__ = "Marcus Bruno Fernandes Silva"
-__version__ = "1.1.1"
+__version__ = "1.2.0"
 __maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
 

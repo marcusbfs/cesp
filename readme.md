@@ -13,36 +13,13 @@ cesp.exe --help
 
 to see the available options.
 
-### Installing
-
-To get a development enviroment running, do the following:
-
-1 - Clone the repo
-
-```
-git clone https://github.com/marcusbfs/cesp.git
-```
-
-2 - Create a virtual environment and activate it
-
-```
-python -m venv cesp_venv
-.\cesp_venv\Script\activate.bat
-```
-
-3 - Download requirements files
-
-```
-pip install -r dev-requirements.txt
-```
-
 ## Contributing
 
 Feel free to contribute anyway you want to :)
 
 ## Authors
 
-* **Marcus Bruno Fernandes Silva** - *marcusbfs@gmail.com*
+- **Marcus Bruno Fernandes Silva** - *marcusbfs@gmail.com*
 
 ## License
 
