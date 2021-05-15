@@ -10,19 +10,19 @@ import time
 from enum import Enum, unique
 from typing import Any, Callable
 
-listStr = list[str]
-
 __author__ = "Marcus Bruno Fernandes Silva"
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 __maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
 
 cesp_logger = logging.getLogger("cesp")
 root_logger = logging.getLogger("main")
 
+listStr = list[str]
+
 
 @unique
-class changeItem(Enum):
+class ChangeItemMode(Enum):
     all = 1
     files = 2
     dirs = 3
@@ -117,7 +117,7 @@ class cesp:
         self._remove_special_chars = False
         self._quiet = False
         self._no_change = True
-        self._change = changeItem.files
+        self._change: ChangeItemMode = ChangeItemMode.files
 
         self._print: Callable[[Any], None] = lambda x: None
         self._update_print()
@@ -138,89 +138,45 @@ class cesp:
         os.chdir(self._path)
 
         self.logger.debug("Walking directory tree and collecting names to be renamed")
-        # Not recursive
-        if not self._recursive:
-            self.logger.debug("Non recursive mode")
-            self.logger.debug("Change type is {}".format(self._change))
-            if self._change == changeItem.files:
-                original_files = [
-                    f
-                    for f in self._oslistdir(
-                        ".",
-                        ignoredDirs=self._ignored_dirs,
-                        ignoredExts=self._ignored_exts,
-                    )
-                    if os.path.isfile(f)
-                ]
-            elif self._change == changeItem.dirs:
-                original_files = [
-                    f
-                    for f in self._oslistdir(
-                        ".",
-                        ignoredDirs=self._ignored_dirs,
-                        ignoredExts=self._ignored_exts,
-                    )
-                    if os.path.isdir(f)
-                ]
+        for root, dirs, files in os.walk(".", topdown=True):
+            files = [
+                f
+                for f in files
+                if not f.startswith(".") and self._isPathGood(os.path.join(root, f))
+            ]
+            dirs = [
+                d
+                for d in dirs
+                if not d.startswith(".") and self._isPathGood(os.path.join(root, d))
+            ]
+            if self._change == ChangeItemMode.files:
+                wd = files
+            elif self._change == ChangeItemMode.dirs:
+                wd = dirs
             else:
-                original_files = [
-                    f
-                    for f in self._oslistdir(
-                        ".",
-                        ignoredDirs=self._ignored_dirs,
-                        ignoredExts=self._ignored_exts,
-                    )
-                ]
-            renamed_files = [self._get_converted_name(f) for f in original_files]
-
-        # Recursive
-        else:
-            self.logger.debug("Recursive mode")
-            for root, dirs, files in os.walk(".", topdown=False):
-                files = [
-                    f
-                    for f in files
-                    if not f.startswith(".") and self._isPathGood(os.path.join(root, f))
-                ]
-                dirs = [
-                    d
-                    for d in dirs
-                    if not d.startswith(".") and self._isPathGood(os.path.join(root, d))
-                ]
-                if self._change == changeItem.files:
-                    wd = files
-                elif self._change == changeItem.dirs:
-                    wd = dirs
-                else:
-                    wd = files + dirs
-                for f in wd:
-                    new_f = self._get_converted_name(f)
+                wd = files + dirs
+            for f in wd:
+                new_f = self._get_converted_name(f)
+                if f != new_f:
                     original_files.append(os.path.join(root, f))
                     renamed_files.append(os.path.join(root, new_f))
 
-        new_original_files = []
-        new_renamed_files = []
-
-        for f, new_f in zip(original_files, renamed_files):
-            if f != new_f:
-                new_original_files.append(f)
-                new_renamed_files.append(new_f)
-
-        original_files = new_original_files
-        renamed_files = new_renamed_files
+            if not self._recursive:
+                break
 
         self.logger.debug("Collected {} files to be renamed".format(len(renamed_files)))
 
-        for f, new_f in zip(original_files, renamed_files):
-            if f != new_f:
-                if os.path.exists(new_f):
-                    self._print(new_f + " already exists")
-                else:
-                    self._print(f + " -> " + new_f)
-                    if not self._no_change:
-                        os.rename(f, new_f)
+        self.logger.debug("Renaming files")
+        for f, new_f in zip(reversed(original_files), reversed(renamed_files)):
+            if os.path.exists(new_f):
+                self._print(new_f + " already exists")
+            else:
+                self._print(f + " -> " + new_f)
+                if not self._no_change:
+                    os.rename(f, new_f)
 
-        self.logger.debug('Returning to "{}"'.format(original_path))
+        self.logger.debug("Renamed {} files".format(len(renamed_files)))
+        self.logger.debug('Returning to path "{}"'.format(original_path))
         os.chdir(original_path)
         self.logger.debug("execute method finished")
         return 0
@@ -347,7 +303,7 @@ class cesp:
     def setNoChange(self, noChange: bool) -> None:
         self._no_change = noChange
 
-    def setChange(self, changeOption: changeItem) -> None:
+    def setChange(self, changeOption: ChangeItemMode) -> None:
         self._change = changeOption
 
     def setPath(self, path: str) -> None:
@@ -371,7 +327,7 @@ class cesp:
     def getIgnoredExtensions(self) -> listStr:
         return self._ignored_exts
 
-    def whatToChange(self) -> changeItem:
+    def whatToChange(self) -> ChangeItemMode:
         return self._change
 
     def isNoChange(self) -> bool:
@@ -402,9 +358,9 @@ def main() -> None:
     )
 
     list_of_choices = {
-        "files": changeItem.files,
-        "dirs": changeItem.dirs,
-        "all": changeItem.all,
+        "files": ChangeItemMode.files,
+        "dirs": ChangeItemMode.dirs,
+        "all": ChangeItemMode.all,
     }
     choices_keys = list(list_of_choices.keys())
 
