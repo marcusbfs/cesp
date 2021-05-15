@@ -2,8 +2,9 @@
 name = "cesp"
 version = "1.3.0"
 description = "Converts blank space to underscore and other characters to avoid problems"
-authors = ["Marcus Bruno Fernandes Silva"]
+authors = ["Marcus Bruno Fernandes Silva <marcusbfs@gmail.com>"]
 license = "MIT"
+readme = "readme.md"
 
 [tool.poetry.dependencies]
 python = "^3.8"
