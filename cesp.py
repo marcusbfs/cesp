@@ -8,17 +8,24 @@ import os
 import re
 import time
 from enum import Enum, unique
-from typing import Any, Callable
+from typing import Any, Callable, List, Tuple
+
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.progress import Progress
+
+listStr = List[str]
+RENAME_DELAY = 0.1
 
 __author__ = "Marcus Bruno Fernandes Silva"
-__version__ = "1.3.0"
 __maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
+__version__ = "1.4.0"
+
+console = Console()
 
 cesp_logger = logging.getLogger("cesp")
 root_logger = logging.getLogger("main")
-
-listStr = list[str]
 
 
 @unique
@@ -30,78 +37,78 @@ class ChangeItemMode(Enum):
 
 class cesp:
     _special_chars = {
-        u"?": "_",
-        u"$": "_",
-        u"%": "_",
-        u"°": "o",
-        u"!": "_",
-        u"@": "_",
-        u'"': "_",
-        u"´": "",
-        u"'": "",
-        u"¨": "_",
-        u"#": "_",
-        u"|": "_",
-        u"<": "_",
-        u">": "_",
-        u"/": "_",
-        u"§": "_",
-        u"\\": "_",
-        u"&": "and",
-        u"*": "_",
-        u":": "_",
-        u";": "_",
-        u",": "_",
-        u"+": "_",
-        u"=": "_",
+        "?": "_",
+        "$": "_",
+        "%": "_",
+        "°": "o",
+        "!": "_",
+        "@": "_",
+        '"': "_",
+        "´": "",
+        "'": "",
+        "¨": "_",
+        "#": "_",
+        "|": "_",
+        "<": "_",
+        ">": "_",
+        "/": "_",
+        "§": "_",
+        "\\": "_",
+        "&": "and",
+        "*": "_",
+        ":": "_",
+        ";": "_",
+        ",": "_",
+        "+": "_",
+        "=": "_",
     }
 
     _utf_chars = {
-        u"ç": "c",
-        u"Ç": "C",
-        u"~": "",
-        u"^": "",
-        u"ª": "a",
-        u"ä": "a",
-        u"ã": "a",
-        u"â": "a",
-        u"á": "a",
-        u"à": "a",
-        u"Ã": "A",
-        u"Ä": "A",
-        u"Â": "A",
-        u"Á": "A",
-        u"À": "A",
-        u"é": "e",
-        u"ê": "e",
-        u"è": "e",
-        u"É": "E",
-        u"Ê": "E",
-        u"È": "E",
-        u"í": "i",
-        u"î": "i",
-        u"ì": "i",
-        u"Í": "I",
-        u"Î": "I",
-        u"Ì": "I",
-        u"º": "o",
-        u"°": "o",
-        u"ó": "o",
-        u"ô": "o",
-        u"ò": "o",
-        u"õ": "o",
-        u"Ó": "O",
-        u"Ô": "O",
-        u"Ò": "O",
-        u"Õ": "O",
-        u"ú": "u",
-        u"ü": "u",
-        u"û": "u",
-        u"ù": "u",
-        u"Ú": "U",
-        u"Û": "U",
-        u"Ù": "U",
-        u"Ü": "U",
+        "ç": "c",
+        "Ç": "C",
+        "~": "",
+        "^": "",
+        "ª": "a",
+        "ä": "a",
+        "ã": "a",
+        "â": "a",
+        "á": "a",
+        "à": "a",
+        "Ã": "A",
+        "Ä": "A",
+        "Â": "A",
+        "Á": "A",
+        "À": "A",
+        "é": "e",
+        "ê": "e",
+        "è": "e",
+        "É": "E",
+        "Ê": "E",
+        "È": "E",
+        "í": "i",
+        "î": "i",
+        "ì": "i",
+        "Í": "I",
+        "Î": "I",
+        "Ì": "I",
+        "º": "o",
+        "°": "o",
+        "ó": "o",
+        "ô": "o",
+        "ò": "o",
+        "õ": "o",
+        "Ó": "O",
+        "Ô": "O",
+        "Ò": "O",
+        "Õ": "O",
+        "ú": "u",
+        "ü": "u",
+        "û": "u",
+        "ù": "u",
+        "Ú": "U",
+        "Û": "U",
+        "Ù": "U",
+        "Ü": "U",
     }
 
     def __init__(self) -> None:
@@ -121,19 +128,19 @@ class cesp:
 
         self._print: Callable[[Any], None] = lambda x: None
         self._update_print()
+        self.original_path = os.getcwd()
 
     # Commands
 
-    def execute(self) -> int:
-        self.logger.debug('"execute" called')
+    def fetch(self) -> Tuple[listStr, listStr]:
+        self.logger.debug('"fetch" called')
         original_files = []
         renamed_files = []
 
         if not os.path.isdir(self._path):
             raise ValueError("Invalid path.")
 
-        original_path = os.getcwd()
-        self.logger.debug('Original path "{}"'.format(original_path))
+        self.logger.debug('Original path "{}"'.format(self.original_path))
         self.logger.debug('Changing path to "{}"'.format(self._path))
         os.chdir(self._path)
 
@@ -166,19 +173,31 @@ class cesp:
 
         self.logger.debug("Collected {} files to be renamed".format(len(renamed_files)))
 
+        return list(reversed(original_files)), list(reversed(renamed_files))
+
+    def return_to_original_path(self) -> None:
+        self.logger.debug('Returning to path "{}"'.format(self.original_path))
+        os.chdir(self.original_path)
+
+    def rename_item(self, f: str, new_f: str) -> None:
+        if os.path.exists(new_f):
+            self._print(f"[bold]{new_f}[/] already exists")
+        else:
+            base_new_f = os.path.basename(new_f)
+            sep = r"\\"
+            fmt_new_f = f"{os.path.dirname(new_f)}{sep}[bold]{base_new_f}[/]"
+            self._print(f"[dim]{f}[/] -> {fmt_new_f}")
+            if not self._no_change:
+                os.rename(f, new_f)
+
+    def rename_list(self, original_files: listStr, renamed_files: listStr) -> int:
+
         self.logger.debug("Renaming files")
-        for f, new_f in zip(reversed(original_files), reversed(renamed_files)):
-            if os.path.exists(new_f):
-                self._print(new_f + " already exists")
-            else:
-                self._print(f + " -> " + new_f)
-                if not self._no_change:
-                    os.rename(f, new_f)
+        for f, new_f in zip(original_files, renamed_files):
+            self.rename_item(f, new_f)
 
         self.logger.debug("Renamed {} files".format(len(renamed_files)))
-        self.logger.debug('Returning to path "{}"'.format(original_path))
-        os.chdir(original_path)
-        self.logger.debug("execute method finished")
+        self.logger.debug("rename_list method finished")
         return 0
 
     # helper Functions
@@ -216,7 +235,7 @@ class cesp:
         if self._quiet:
             self._print = lambda *args, **kwargs: None
         else:
-            self._print = lambda *args, **kwargs: print(*args, **kwargs)
+            self._print = lambda *args, **kwargs: console.print(*args, **kwargs)
 
     def _get_converted_name(self, name: str) -> str:
         if self._convert_utf:
@@ -447,8 +466,13 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    logging_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-    logging.basicConfig(level=args.loglevel, format=logging_format)
+    FORMAT = "%(message)s"
+    logging.basicConfig(
+        level=args.loglevel,
+        format=FORMAT,
+        datefmt="[%X]",
+        handlers=[RichHandler(console=console)],
+    )
 
     root_logger.debug("Args passed: {}".format(args))
 
@@ -466,12 +490,40 @@ def main() -> None:
     cesper.setSpecialChars(args.special_chars)
     cesper.setPath(args.path)
 
-    root_logger.debug("Calling cesper.execute()")
-    cesper.execute()
+    root_logger.debug("Calling cesper.fetch()")
 
-    root_logger.debug(
-        "Finished program in {:.3f} seconds".format(time.time() - start_time)
-    )
+    og_files: listStr = []
+    ren_files: listStr = []
+
+    fetching_message = "Fetching files..."
+    with console.status(
+        fetching_message,
+    ) as status:
+        og_files, ren_files = cesper.fetch()
+
+    files_num = len(og_files)
+
+    console.print(f"[bold green]OK![/] {fetching_message}")
+    console.print(f"Found {files_num} files")
+
+    if args.nochange:
+        cesper.rename_list(og_files, ren_files)
+        console.print("[bold red]No changes were made[/]")
+    else:
+        with Progress(console=console) as progress:
+            task = progress.add_task(description="Renaming...", total=files_num)
+            for f, new_f in zip(og_files, ren_files):
+                cesper.rename_item(f, new_f)
+                time.sleep(RENAME_DELAY)
+                progress.advance(task, 1)
+
+    cesper.return_to_original_path()
+
+    elapsed_time = time.time() - start_time
+
+    console.print(f"Finished in {elapsed_time:.2f} seconds")
+
+    root_logger.debug("Finished program in {:.2f} seconds".format(elapsed_time))
 
 
 if __name__ == "__main__":

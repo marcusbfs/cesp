@@ -13,3 +13,5 @@ test_folder.mkdir(exist_ok=True)
 
 with py7zr.SevenZipFile(test_folder_7z, mode="r") as z:
     z.extractall(path=CURRENT_DIR.parent)
+
+print("Test folder created")
