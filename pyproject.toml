@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "cesp"
-version = "1.4.0"
+version = "1.4.1"
 description = "Converts blank space to underscore and other characters to avoid problems"
 authors = ["Marcus Bruno Fernandes Silva <marcusbfs@gmail.com>"]
 license = "MIT"

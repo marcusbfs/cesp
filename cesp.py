@@ -20,7 +20,7 @@ RENAME_DELAY = 0.1
 __author__ = "Marcus Bruno Fernandes Silva"
 __maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
-__version__ = "1.4.0"
+__version__ = "1.4.1"
 
 console = Console()
 
