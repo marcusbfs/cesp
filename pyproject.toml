@@ -16,6 +16,7 @@ mypy = "^0.812"
 isort = "^5.8.0"
 autoflake = "^1.4"
 py7zr = "^0.16.1"
+pyinstaller = "^4.3"
 
 [tool.poetry.scripts]
 cesp = "cesp:main"
