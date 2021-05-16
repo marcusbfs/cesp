@@ -196,7 +196,9 @@ class cesp:
         for f, new_f in zip(original_files, renamed_files):
             self.rename_item(f, new_f)
 
-        self.logger.debug("Renamed {} files".format(len(renamed_files)))
+        if not self._no_change:
+            self.logger.debug("Renamed {} files".format(len(renamed_files)))
+
         self.logger.debug("rename_list method finished")
         return 0
 
