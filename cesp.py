@@ -12,7 +12,7 @@ from typing import Any, Callable, List, Tuple
 
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.progress import Progress
+from rich.progress import BarColumn, Progress, TimeRemainingColumn
 
 listStr = List[str]
 RENAME_DELAY = 0.1
@@ -20,7 +20,7 @@ RENAME_DELAY = 0.1
 __author__ = "Marcus Bruno Fernandes Silva"
 __maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
-__version__ = "1.4.1"
+__version__ = "1.5.1"
 
 console = Console()
 
@@ -179,14 +179,19 @@ class cesp:
         self.logger.debug('Returning to path "{}"'.format(self.original_path))
         os.chdir(self.original_path)
 
-    def rename_item(self, f: str, new_f: str) -> None:
+    def rename_item(self, f: str, new_f: str, print_rename: bool = True) -> None:
         if os.path.exists(new_f):
             self._print(f"[bold]{new_f}[/] already exists")
         else:
-            base_new_f = os.path.basename(new_f)
-            sep = r"\\"
-            fmt_new_f = f"{os.path.dirname(new_f)}{sep}[bold]{base_new_f}[/]"
-            self._print(f"[dim]{f}[/] -> {fmt_new_f}")
+            if print_rename:
+                base_new_f = os.path.basename(new_f)
+                base_old_f = os.path.basename(f)
+                sep = r"\\"
+                fmt_old_f = (
+                    f"[dim]{os.path.dirname(f)}{sep}[/dim][bold red]{base_old_f}[/]"
+                )
+                fmt_new_f = f"[dim]{os.path.dirname(new_f)}{sep}[/dim][bold green]{base_new_f}[/]"
+                self._print(f"{fmt_old_f} -> {fmt_new_f}")
             if not self._no_change:
                 os.rename(f, new_f)
 
@@ -512,12 +517,24 @@ def main() -> None:
         cesper.rename_list(og_files, ren_files)
         console.print("[bold red]No changes were made[/]")
     else:
-        with Progress(console=console) as progress:
-            task = progress.add_task(description="Renaming...", total=files_num)
+        with Progress(
+            "[progress.description]{task.description}",
+            BarColumn(),
+            "[progress.percentage]{task.percentage:>3.0f}%",
+            TimeRemainingColumn(),
+            "{task.fields[file]}",
+            console=console,
+        ) as progress:
+            task = progress.add_task(
+                description="Renaming...", total=files_num, file=""
+            )
             for f, new_f in zip(og_files, ren_files):
+                f_name = os.path.basename(f)
+                progress.update(task, file=f"- [dim]{f_name}[/]")
                 cesper.rename_item(f, new_f)
                 time.sleep(RENAME_DELAY)
                 progress.advance(task, 1)
+            progress.update(task, file="")
 
     cesper.return_to_original_path()
 

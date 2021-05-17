@@ -1,5 +1,4 @@
-python=cesp_venv\Scripts\python.exe
-.PHONY = fmt
+.PHONY = fmt t tn
 
 all: fmt
 
@@ -8,8 +7,14 @@ fmt:
 	isort cesp.py scripts/make_exe.py
 	black cesp.py scripts/make_exe.py
 
-mypyc:
-	$(python) -m  mypy .  --config-file mypy.ini
 
-mypy:
-	$(python) -m  mypy .  --ignore-missing-imports --check-untyped-defs --disallow-untyped-calls --disallow-untyped-defs
+t: setup_test
+	python .\cesp.py -rdubscall test_folder
+
+tn: setup_test
+	python .\cesp.py -rdubscall test_folder -n
+
+
+setup_test:
+	rm -rf test_folder
+	python scripts\create_test_folder.py
