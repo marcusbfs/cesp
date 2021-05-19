@@ -7,12 +7,13 @@ import logging
 import os
 import re
 import time
+from collections.abc import Callable
 from enum import Enum, unique
-from typing import Any, Callable, List, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from rich.console import Console
 from rich.logging import RichHandler
-from rich.progress import BarColumn, Progress, TimeRemainingColumn
+from rich.progress import BarColumn, Progress, SpinnerColumn, TimeRemainingColumn
 
 listStr = List[str]
 RENAME_DELAY = 0.1
@@ -20,7 +21,7 @@ RENAME_DELAY = 0.1
 __author__ = "Marcus Bruno Fernandes Silva"
 __maintainer__ = __author__
 __email__ = "marcusbfs@gmail.com"
-__version__ = "1.5.2"
+__version__ = "1.5.3"
 
 console = Console()
 
@@ -132,7 +133,9 @@ class cesp:
 
     # Commands
 
-    def fetch(self) -> Tuple[listStr, listStr]:
+    def fetch(
+        self, callback: Optional[Callable[[str, int], None]] = None
+    ) -> Tuple[listStr, listStr]:
         self.logger.debug('"fetch" called')
         original_files = []
         renamed_files = []
@@ -145,6 +148,7 @@ class cesp:
         os.chdir(self._path)
 
         self.logger.debug("Walking directory tree and collecting names to be renamed")
+        total = 0
         for root, dirs, files in os.walk(".", topdown=True):
             files = [
                 f
@@ -167,6 +171,9 @@ class cesp:
                 if f != new_f:
                     original_files.append(os.path.join(root, f))
                     renamed_files.append(os.path.join(root, new_f))
+                    total += 1
+                    if callback is not None:
+                        callback(f, total)
 
             if not self._recursive:
                 break
@@ -503,46 +510,51 @@ def main() -> None:
     ren_files: listStr = []
 
     fetching_message = "Fetching files..."
-    with console.status(
+    with Progress(
+        SpinnerColumn(),
         fetching_message,
-    ) as status:
-        og_files, ren_files = cesper.fetch()
+        "[dim]{task.fields[extra]}[/]",
+        transient=True,
+    ) as progress:
+        task = progress.add_task(description="", start=False, extra="")
+        og_files, ren_files = cesper.fetch(
+            lambda f, total: progress.update(task, extra=f"found {total} - latest: {f}")
+        )
 
     files_num = len(og_files)
 
     console.print(f"[bold green]OK![/] {fetching_message}")
     console.print(f"Found {files_num} files")
 
-    if args.nochange:
-        cesper.rename_list(og_files, ren_files)
-        console.print("[bold red]No changes were made[/]")
-    else:
-        with Progress(
-            "[progress.description]{task.description}",
-            BarColumn(),
-            "[progress.percentage]{task.percentage:>3.0f}%",
-            TimeRemainingColumn(),
-            "{task.fields[file]}",
-            console=console,
-        ) as progress:
-            task = progress.add_task(
-                description="Renaming...", total=files_num, file=""
-            )
-            for f, new_f in zip(og_files, ren_files):
-                f_name = os.path.basename(f)
-                progress.update(task, file=f"- [dim]{f_name}[/]")
-                cesper.rename_item(f, new_f)
-                time.sleep(RENAME_DELAY)
-                progress.advance(task, 1)
-            progress.update(task, file="")
+    if files_num > 0:
 
-    cesper.return_to_original_path()
+        if args.nochange:
+            cesper.rename_list(og_files, ren_files)
+            console.print("[bold red]No changes were made[/]")
+        else:
+            with Progress(
+                "[progress.description]{task.description}",
+                BarColumn(),
+                "[progress.percentage]{task.percentage:>3.0f}%",
+                TimeRemainingColumn(),
+                "{task.fields[file]}",
+                console=console,
+            ) as progress:
+                task = progress.add_task(
+                    description="Renaming...", total=files_num, file=""
+                )
+                for f, new_f in zip(og_files, ren_files):
+                    f_name = os.path.basename(f)
+                    progress.update(task, file=f"- [dim]{f_name}[/]")
+                    cesper.rename_item(f, new_f)
+                    time.sleep(RENAME_DELAY)
+                    progress.advance(task, 1)
+                progress.update(task, file="")
+
+        cesper.return_to_original_path()
 
     elapsed_time = time.time() - start_time
-
     console.print(f"Finished in {elapsed_time:.2f} seconds")
-
-    root_logger.debug("Finished program in {:.2f} seconds".format(elapsed_time))
 
 
 if __name__ == "__main__":
