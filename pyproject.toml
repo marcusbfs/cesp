@@ -18,6 +18,7 @@ autoflake = "^1.4"
 py7zr = "^0.16.1"
 pyinstaller = "^4.3"
 pytest = "^6.2.4"
+pytest-cov = "^2.12.0"
 
 [tool.poetry.scripts]
 cesp = "cesp:main"
