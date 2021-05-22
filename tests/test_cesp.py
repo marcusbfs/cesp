@@ -169,8 +169,7 @@ def test_actual_rename(cesper_dubs: cesp.cesp) -> None:
 
     og, ren = cesper_dubs.fetch()
 
-    for f, new_f in zip(og, ren):
-        cesper_dubs.rename_item(f, new_f)
+    cesper_dubs.rename_list(og, ren)
 
     assert Path(Path(test_folder) / "utf" / "caoueuauad_nhau.txt").is_file()
     assert Path(Path(test_folder) / "special_chars" / "asd_adj.txt").is_file()
