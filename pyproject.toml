@@ -1,20 +1,20 @@
 [tool.poetry]
-name = "cesp"
-version = "1.5.3"
-description = "Converts blank space to underscore and other characters to avoid problems"
 authors = ["Marcus Bruno Fernandes Silva <marcusbfs@gmail.com>"]
+description = "Converts blank space to underscore and other characters to avoid problems"
 license = "MIT"
+name = "cesp"
 readme = "readme.md"
+version = "1.5.4"
 
 [tool.poetry.dependencies]
 python = "^3.7"
 rich = "^10.2.2"
 
 [tool.poetry.dev-dependencies]
-black = "^21.5b1"
-mypy = "^0.812"
-isort = "^5.8.0"
 autoflake = "^1.4"
+black = "^21.5b1"
+isort = "^5.8.0"
+mypy = "^0.812"
 py7zr = "^0.16.1"
 pyinstaller = "^4.3"
 pytest = "^6.2.4"
@@ -24,5 +24,5 @@ pytest-cov = "^2.12.0"
 cesp = "cesp:main"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+requires = ["poetry-core>=1.0.0"]

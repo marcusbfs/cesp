@@ -9,7 +9,7 @@ import re
 import time
 from collections.abc import Callable
 from enum import Enum, unique
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -55,61 +55,41 @@ class cesp:
         "/": "_",
         "§": "_",
         "\\": "_",
-        "&": "and",
+        "&": "_and_",
         "*": "_",
         ":": "_",
         ";": "_",
         ",": "_",
         "+": "_",
         "=": "_",
+        "~": "",
+        "^": "",
+        "ª": "a",
+        "º": "o",
+        "°": "o",
     }
 
     _utf_chars = {
         "ç": "c",
-        "Ç": "C",
-        "~": "",
-        "^": "",
-        "ª": "a",
         "ä": "a",
         "ã": "a",
         "â": "a",
         "á": "a",
         "à": "a",
-        "Ã": "A",
-        "Ä": "A",
-        "Â": "A",
-        "Á": "A",
-        "À": "A",
         "é": "e",
         "ê": "e",
         "è": "e",
-        "É": "E",
-        "Ê": "E",
-        "È": "E",
         "í": "i",
         "î": "i",
         "ì": "i",
-        "Í": "I",
-        "Î": "I",
-        "Ì": "I",
-        "º": "o",
-        "°": "o",
         "ó": "o",
         "ô": "o",
         "ò": "o",
         "õ": "o",
-        "Ó": "O",
-        "Ô": "O",
-        "Ò": "O",
-        "Õ": "O",
         "ú": "u",
         "ü": "u",
         "û": "u",
         "ù": "u",
-        "Ú": "U",
-        "Û": "U",
-        "Ù": "U",
-        "Ü": "U",
     }
 
     def __init__(self) -> None:
@@ -130,6 +110,8 @@ class cesp:
         self._print: Callable[[Any], None] = lambda x: None
         self._update_print()
         self.original_path = os.getcwd()
+
+        self._append_upper_to_dict(self._utf_chars)
 
     # Commands
 
@@ -303,6 +285,15 @@ class cesp:
             self._ignored_dirs[i] = os.path.realpath(
                 os.path.join(self._path, self._ignored_dirs[i])
             )
+
+    def _append_upper_to_dict(self, d: Dict[str, str]) -> None:
+
+        keys = list(self._utf_chars.keys())
+
+        for key in keys:
+            key_upper = key.upper()
+            value_upper = self._utf_chars[key].upper()
+            self._utf_chars[key_upper] = value_upper
 
     # Setters
 

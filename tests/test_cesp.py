@@ -1,9 +1,9 @@
-import pytest
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 
 import py7zr
+import pytest
 
 import cesp
 
@@ -38,7 +38,10 @@ def prepare_test_folder() -> None:  # type: ignore
 
     yield
 
+    os.chdir(CURRENT_DIR)
     shutil.rmtree(test_folder, ignore_errors=True)
+    if test_folder.is_dir():
+        os.removedirs(test_folder)
 
 
 def test_object_creation(cesper: cesp.cesp) -> None:
@@ -54,9 +57,27 @@ def test_object_creation(cesper: cesp.cesp) -> None:
         ("[brackets] (round) {weird} .mkv", "brackets_round_weird.mkv"),
         ("", ""),
         ("with.dots.mkv", "with_dots.mkv"),
+        ("with^special&chars?.mkv", "withspecial_and_chars.mkv"),
     ],
 )
 def test_rename_function(
+    test_input: str, expected: str, cesper_dubs: cesp.cesp
+) -> None:
+    assert cesper_dubs._get_converted_name(test_input) == expected
+
+
+@pytest.mark.parametrize(
+    "test_input, expected",
+    [
+        ("WITH SPACE", "WITH_SPACE"),
+        ("CORAÇÃO.TXT", "CORACAO.TXT"),
+        ("[BRACKETS] (ROUND) {WEIRD} .MKV", "BRACKETS_ROUND_WEIRD.MKV"),
+        ("", ""),
+        ("WITH.DOTS.MKV", "WITH_DOTS.MKV"),
+        ("WITH^SPECIAL&CHARS?.MKV", "WITHSPECIAL_and_CHARS.MKV"),
+    ],
+)
+def test_rename_all_uppercase_function(
     test_input: str, expected: str, cesper_dubs: cesp.cesp
 ) -> None:
     assert cesper_dubs._get_converted_name(test_input) == expected
@@ -123,3 +144,35 @@ def test_fetching_all_recursive(cesper_dubs: cesp.cesp) -> None:
 )
 def test_remove_blank_spaces(name: str, expected: str, cesper_dubs: cesp.cesp) -> None:
     assert cesper_dubs._removeBlankSpaces(name) == expected
+
+
+@pytest.mark.parametrize(
+    "name, expected",
+    [
+        ("FOO WITH SPACES", "FOO_WITH_SPACES"),
+        ("FOO Ç WITH SPACES", "FOO_Ç_WITH_SPACES"),
+    ],
+)
+def test_remove_blank_spaces_upper(
+    name: str, expected: str, cesper_dubs: cesp.cesp
+) -> None:
+    assert cesper_dubs._removeBlankSpaces(name) == expected
+
+
+def test_actual_rename(cesper_dubs: cesp.cesp) -> None:
+    test_folder = str(CURRENT_DIR / "test_folder")
+    cesper_dubs.setPath(test_folder)
+    cesper_dubs.setChange(cesp.ChangeItemMode.all)
+    cesper_dubs.setNoChange(False)
+    cesper_dubs.setRecursive(True)
+    cesper_dubs.setIgnoredDirs([os.path.join(test_folder, "id")])
+
+    og, ren = cesper_dubs.fetch()
+
+    for f, new_f in zip(og, ren):
+        cesper_dubs.rename_item(f, new_f)
+
+    assert Path(Path(test_folder) / "utf" / "caoueuauad_nhau.txt").is_file()
+    assert Path(Path(test_folder) / "special_chars" / "asd_adj.txt").is_file()
+    assert Path(Path(test_folder) / "id" / "should be ignored.txt").is_file()
+    assert Path(Path(test_folder) / "asd_asd_asd" / "file_with_spaces.txt").is_file()

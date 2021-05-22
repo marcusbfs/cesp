@@ -3,9 +3,9 @@
 all: fmt tests
 
 fmt:
-	autoflake --remove-all-unused-imports --remove-unused-variables --in-place cesp.py scripts/make_exe.py
-	isort cesp.py scripts/make_exe.py
-	black cesp.py scripts/make_exe.py
+	autoflake --remove-all-unused-imports --remove-unused-variables --in-place cesp.py scripts tests -r
+	isort cesp.py scripts/make_exe.py tests
+	black cesp.py scripts/make_exe.py tests
 
 
 tests:
